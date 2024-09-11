@@ -9,6 +9,7 @@ import func_timeout
 import numpy as np
 import psutil
 from func_timeout import func_set_timeout
+from python_repo import PythonRepo
 from tqdm import tqdm
 
 
@@ -33,8 +34,11 @@ def adjust_indent(code, new_indent):
 
 @func_set_timeout(20)
 def execution_tests(test, project_path):
-    command = "source myenv/bin/activate && pytest " + test
-    process = subprocess.Popen(['bash', '-c', command], cwd=project_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = "pytest " + test
+    print(project_path)
+    process = subprocess.Popen(['bash', '-c', command], cwd=project_path,
+                               # stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                               )
     try:
         while True:
             process_id = process.pid
@@ -107,9 +111,13 @@ def check_correctness(args, data):
     project_name = data['completion_path'].split('/')[0]
     project_path = os.path.join(args.source_code_root, project_name)
     flag = 'Pass'
+    python_repo = PythonRepo(project_path)
+    python_repo.prepare_env()
+
     for test in data['tests']:
         try:
-            result = execution_tests(test, project_path)
+            # result = execution_tests(test, project_path)
+            result = python_repo.run_test(test)
             if not result:
                 flag = 'Fail'
                 break

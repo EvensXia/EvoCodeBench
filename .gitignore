@@ -165,3 +165,4 @@ Dependency_Data/
 Source_Code/
 downloads
 *.jsonl
+.vscode/
