@@ -49,6 +49,8 @@ class PythonRepo:
         self.env = []
         self.build_backend: str = None
         self.pypi_project_name: str = None
+        self.env_var = os.environ.copy()
+        self.env_var['PYDEVD_DISABLE_FILE_VALIDATION'] = '1'
 
     def load_environments_cfg(self):
         requirements_txt = self.repo_path / "requirements.txt"
@@ -91,37 +93,38 @@ class PythonRepo:
 
     def generate_venv(self):
         if not self.venv_path.exists():
-            subprocess.run(["python3", "-m", "venv", str(self.venv_path)])
+            subprocess.run(["python3", "-m", "venv", str(self.venv_path)], env=self.env_var)
         else:
             logger.info("Virtual environment already exists.")
 
     def config_venv(self):
         if not self.env:
             return
-        subprocess.run([str(self.exec_path), "-m", "pip", "install", "--upgrade", "pip"])
+        subprocess.run([str(self.exec_path), "-m", "pip", "install", "--upgrade", "pip"], env=self.env_var)
         for package in self.env:
-            subprocess.run([str(self.exec_path), "-m", "pip", "install", package])
+            subprocess.run([str(self.exec_path), "-m", "pip", "install", package], env=self.env_var)
 
-    def install_pytest(self): subprocess.run([str(self.exec_path), "-m", "pip", "install", "pytest"])
+    def install_pytest(self): subprocess.run([str(self.exec_path), "-m", "pip", "install", "pytest"], env=self.env_var)
 
     def build_and_install(self):
         try:
             if (self.build_backend is not None) and (self.pypi_project_name is not None):
-                subprocess.run([str(self.exec_path), "-m", "pip", "uninstall", "-y", self.pypi_project_name])
+                subprocess.run([str(self.exec_path), "-m", "pip", "uninstall", "-y", self.pypi_project_name], env=self.env_var)
                 if self.build_backend == 'poetry':
-                    subprocess.run(["poetry", "build"])
+                    subprocess.run(["poetry", "build"], env=self.env_var)
                 elif self.build_backend == 'setuptools':
-                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "build"])
-                    subprocess.run([str(self.relate_exec_path), "-m", "build"], cwd=str(self.repo_path))
+                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "build"], env=self.env_var)
+                    subprocess.run([str(self.relate_exec_path), "-m", "build"], cwd=str(self.repo_path), env=self.env_var)
                 elif self.build_backend == "setup.py":
-                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "setuptools"])
-                    subprocess.run([str(self.relate_exec_path), "setup.py", "bdist_wheel"], cwd=str(self.repo_path))
+                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "setuptools"], env=self.env_var)
+                    subprocess.run([str(self.relate_exec_path), "setup.py", "bdist_wheel"],
+                                   cwd=str(self.repo_path), env=self.env_var)
                 else:
                     raise ValueError
                 for file in os.listdir(self.repo_path / "dist"):
                     if file.endswith(".whl"):
                         subprocess.run([str(self.relate_exec_path), "-m", "pip", "install", f"dist/{file}"],
-                                       cwd=str(self.repo_path))
+                                       cwd=str(self.repo_path), env=self.env_var)
         except Exception as e:
             logger.exception(e)
 
@@ -141,13 +144,12 @@ class PythonRepo:
         log_file = os.path.join(log_dir, f"{test.split("::")[-1]}.log")
 
         with open(log_file, "w") as log_fh:
-            env = os.environ.copy()
-            env['PYDEVD_DISABLE_FILE_VALIDATION'] = '1'
+
             process = subprocess.Popen([str(self.relate_exec_path), "-m", "pytest", test],
                                        cwd=str(self.repo_path),
                                        stdout=log_fh,
                                        stderr=log_fh,
-                                       env=env)
+                                       env=self.env_var)
             try:
                 while True:
                     process_id = process.pid
