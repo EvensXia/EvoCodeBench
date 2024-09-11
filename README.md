@@ -1,3 +1,7 @@
+# NOTICE
+
+This repo are forked from [seketeam/EvoCodeBench](https://github.com/seketeam/EvoCodeBench), but I found too many unuseful files (such as, "xx.so", "__pycache__", ".DS_store")in git history, so I rebuild the git history from source, the last commi of source repo are [Add files via upload](https://github.com/seketeam/EvoCodeBench/commit/a5f0793e59bceb8ab10a8553240368efc1ed7bd8), and this repo are start with this checkpoint.
+
 # EvoCodeBench
 
 EvoCodeBench is an evolutionary code generation benchmark aligned with real-world code repositories. Details of EvoCodeBench can be found in our paper "EvoCodeBench: An Evolving Code Generation Benchmark Aligned with Real-world Code Repositories" [Paper](https://lj2lijia.github.io/papers/EvoCodeBench_Preprint.pdf).
