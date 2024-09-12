@@ -1,0 +1,30 @@
+[prepare]
+venv = ["python", "-m", "venv", ".venv"]
+pip = ["./.venv/bin/python", "-m", "pip", "install", "pip", "setuptools", "-U"]
+requirements = [
+    "./.venv/bin/python",
+    "-m",
+    "pip",
+    "install",
+    "-r",
+    "requirements.txt",
+]
+setuptools = ["./.venv/bin/python", "-m", "pip", "install", "setuptools", "-U"]
+poetry = ["./.venv/bin/python", "-m", "pip", "install", "poetry", "-U"]
+pytest = ["./.venv/bin/python", "-m", "pip", "install", "pytest", "-U"]
+build = ["./.venv/bin/python", "-m", "pip", "install", "build", "-U"]
+hatchling = ["./.venv/bin/python", "-m", "pip", "install", "hatchling", "-U"]
+
+[resets]
+e0 = ["echo", "'nothing to install'"]
+# pyproject.toml :: setuptools
+build = ["./.venv/bin/python", "-m", "build"]
+# pyproject.toml :: poetry
+poetry = ["./.venv/bin/python", "-m", "poetry", "build"]
+# pyproject.toml :: hatchling
+hatchling = ["./.venv/bin/python", "-m", "hatchling", "build"]
+# setup.py
+bdist_wheel = ["./.venv/bin/python", "setup.py", "bdist_wheel"]
+# reinstall
+uninstall = ["./.venv/bin/python", "-m", "pip", "uninstall", "-y", ""]
+install = ["./.venv/bin/python", "-m", "pip", "install", ""]

@@ -1,6 +1,6 @@
 # NOTICE
 
-This repo are forked from [seketeam/EvoCodeBench](https://github.com/seketeam/EvoCodeBench), but I found too many unuseful files (such as, "xx.so", "\_\_pycache\_\_", ".DS_store")in git history, so I rebuild the git history from source, the last commi of source repo are [Add files via upload](https://github.com/seketeam/EvoCodeBench/commit/a5f0793e59bceb8ab10a8553240368efc1ed7bd8), and this repo are start with this checkpoint.
+This repo are forked from [seketeam/EvoCodeBench](https://github.com/seketeam/EvoCodeBench), but I found too many unuseful files (such as, "xx.so", "\_\_pycache\_\_", ".DS_store") in git history, so I rebuild the git history from source, the last commit of source repo are [Add files via upload](https://github.com/seketeam/EvoCodeBench/commit/a5f0793e59bceb8ab10a8553240368efc1ed7bd8), and this repo are start with that checkpoint.
 
 # EvoCodeBench
 

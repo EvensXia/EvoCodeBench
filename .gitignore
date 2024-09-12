@@ -166,3 +166,5 @@ Source_Code/
 downloads
 *.jsonl
 .vscode/
+Source_Code_backup/
+log/

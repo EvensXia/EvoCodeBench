@@ -1,43 +1,37 @@
 import os
+import re
 import subprocess
 from pathlib import Path
-import chardet
-import toml
-from loguru import logger
-from func_timeout import func_set_timeout
-import psutil
 
-import re
+import chardet
+import psutil
+import toml
+from func_timeout import func_set_timeout
+from loguru import logger
 
 
 def find_project_name(setup_filepath: str) -> str:
-    """
-    Find the project name inside setuptools.setup() from the setup.py file.
-
-    Args:
-        setup_filepath (str): Path to the setup.py file.
-
-    Returns:
-        str: The project name if found, otherwise return None.
-    """
     with open(setup_filepath, "r", encoding="utf-8") as file:
         setup_content = file.read()
-
-    # Regular expression to find the 'name' argument within the 'setuptools.setup' parentheses
     setup_match = re.search(r'setuptools\.setup\s*\((.*?)\)', setup_content, re.DOTALL)
-
     if setup_match:
         setup_args = setup_match.group(1)
-
-        # Regular expression to find 'name="open-iris"' within the setuptools.setup arguments
         name_match = re.search(r'\bname\s*=\s*[\'"]([^\'"]+)[\'"]', setup_args)
-
         if name_match:
-            return name_match.group(1)  # Return the project name found
+            return name_match.group(1)
         else:
             logger.error("Project name not found inside setuptools.setup()")
     else:
-        logger.error("setuptools.setup() function not found in setup.py")
+        setup_match = re.search(r'setup\s*\((.*?)\)', setup_content, re.DOTALL)
+        if setup_match:
+            setup_args = setup_match.group(1)
+            name_match = re.search(r'\bname\s*=\s*[\'"]([^\'"]+)[\'"]', setup_args)
+            if name_match:
+                return name_match.group(1)
+            else:
+                logger.error("Project name not found inside setup()")
+        else:
+            logger.error("Project name not found in `setup.py`")
 
 
 class PythonRepo:
@@ -91,6 +85,20 @@ class PythonRepo:
             else:
                 logger.warning(f"not a former python repo {self.repo_path}")
 
+    def prepare_repo(self):
+        with open(self.repo_path / "python_repo.toml", "r") as f:
+            dd = toml.load(f)
+        for k, cmd in dd["prepare"].items():
+            logger.info(f"{self.repo_path} :: step {k}, executing cmd `{' '.join(cmd)}`")
+            subprocess.run(cmd, cwd=str(self.repo_path), env=self.env_var)
+
+    def config_repo(self):
+        with open(self.repo_path / "python_repo.toml", "r") as f:
+            dd = toml.load(f)
+        for k, cmd in dd["resets"].items():
+            logger.info(f"{self.repo_path} :: step {k}, executing cmd `{' '.join(cmd)}`")
+            subprocess.run(cmd, cwd=str(self.repo_path), env=self.env_var)
+
     def generate_venv(self):
         if not self.venv_path.exists():
             subprocess.run(["python3", "-m", "venv", str(self.venv_path)], env=self.env_var)
@@ -116,7 +124,7 @@ class PythonRepo:
                     subprocess.run([str(self.exec_path), "-m", "pip", "install", "build"], env=self.env_var)
                     subprocess.run([str(self.relate_exec_path), "-m", "build"], cwd=str(self.repo_path), env=self.env_var)
                 elif self.build_backend == "setup.py":
-                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "setuptools"], env=self.env_var)
+                    subprocess.run([str(self.exec_path), "-m", "pip", "install", "setuptools", "-U"], env=self.env_var)
                     subprocess.run([str(self.relate_exec_path), "setup.py", "bdist_wheel"],
                                    cwd=str(self.repo_path), env=self.env_var)
                 else:
@@ -129,13 +137,15 @@ class PythonRepo:
             logger.exception(e)
 
     def prepare_env(self):
-        self.load_environments_cfg()
-        self.generate_venv()
-        self.config_venv()
-        self.install_pytest()
-        self.build_and_install()
+        # self.prepare_repo()
+        self.config_repo()
+        # self.load_environments_cfg()
+        # # self.generate_venv()
+        # # self.config_venv()
+        # # self.install_pytest()
+        # self.build_and_install()
 
-    @func_set_timeout(20)
+    @func_set_timeout(30)
     def run_test(self, test: str):
         logger.info(f"running {self.repo_path} | {test}")
 
