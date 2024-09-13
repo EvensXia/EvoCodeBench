@@ -20,6 +20,20 @@ def get_parser():
     return parser.parse_args()
 
 
+def parse_config():
+    import types
+    import yaml
+    parser = ArgumentParser()
+    parser.add_argument("-c", "--config", type=str)
+    args = parser.parse_args()
+    config: str = args.config
+    config_file, config_key = config.split("::")
+    with open(config_file, "r") as f:
+        config_all = yaml.safe_load(f)
+    args_config = types.SimpleNamespace(**config_all[config_key])
+    return args_config
+
+
 def adjust_indent(code, new_indent):
     # remove original indentation
     dedented_code = textwrap.dedent(code)
@@ -44,11 +58,11 @@ def compute_recall(generated_dependency, reference_dependency):
 
 
 def report_results(args, k_list, output_data, benchmark_data):
-    if not os.path.exists(args.output_file):
+    if not os.path.exists(args.log_file):
         raise ValueError("Output file not found")
 
     parse_results = dict()
-    with open(args.output_file, 'r') as f:
+    with open(args.log_file, 'r') as f:
         for line in f:
             js = json.loads(line)
             namespace, completion = js['namespace'], js['completion']
@@ -68,13 +82,16 @@ def report_results(args, k_list, output_data, benchmark_data):
                 if namespace not in results:
                     results[namespace] = []
                 results[namespace].append(recall)
-
+    writes = []
     for k in k_list:
         recall = 0
         for namespace, recall_list in results.items():
             recall += max(recall_list[:k])
         recall /= len(results)  # average the accuracy of samples
         print(f"Recall@{k}: {recall*100}%\n")
+        writes.append(f"Recall@{k}: {recall*100}%\n")
+    with open(args.write_rst, "w") as f:
+        f.writelines(writes)
 
 
 def SetUp_evaluation(args, data):
@@ -159,7 +176,8 @@ def load_finished_data(args):
 
 
 def main():
-    args = get_parser()
+    # args = get_parser()
+    args = parse_config()
 
     # Parse the k values
     k_list = []

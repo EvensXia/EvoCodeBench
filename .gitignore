@@ -169,3 +169,5 @@ downloads
 Source_Code_backup/
 log/
 config.*.yaml
+recall_config.*.yaml
+scripts

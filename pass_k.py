@@ -171,11 +171,15 @@ def report_results(args, benchmark_data):
 
     # Compute Pass@k
     k_list = [int(k) for k in args.k.split(',')]
+    writes = []
     for k in k_list:
         if k > args.n:
             continue
         pass_at_k = np.mean([compute_pass_at_k(args.n, pass_num, k) for namespace, pass_num in results.items()])
         print(f'pass_at_{k}: {pass_at_k*100}%')
+        writes.append(f'pass_at_{k}: {pass_at_k*100}%\n')
+    with open(args.write_rst, "w") as f:
+        f.writelines(writes)
 
 
 def load_finished_data(args):

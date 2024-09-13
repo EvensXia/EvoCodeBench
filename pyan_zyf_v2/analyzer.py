@@ -77,14 +77,14 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.module_to_filename[mod_name] = filename
         self.filenames = filenames
         self.root = root
-        
-        self.functional_info = {} # 保存类、函数、（Block）级别对应的功能注释等信息，默认为body中的第一个注释
+
+        self.functional_info = {}  # 保存类、函数、（Block）级别对应的功能注释等信息，默认为body中的第一个注释
 
         # data gathered from analysis
         self.defines_edges = {}
         self.uses_edges = {}
         self.import_uses_edges = {}  # 对于通过import引入的名称，记录其使用关系
-        self.virtual_uses_edges = {} # 对于找不到具体定义位置的名称，将其作为虚拟节点，用于记录其使用关系
+        self.virtual_uses_edges = {}  # 对于找不到具体定义位置的名称，将其作为虚拟节点，用于记录其使用关系
         self.relevant_edges = {}
         self.nodes = {}  # Node name: list of Node objects (in possibly different namespaces)
         self.scopes = {}  # fully qualified name of namespace: Scope object
@@ -100,15 +100,14 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.scope_stack = []  # the Scope objects currently in scope
         self.class_stack = []  # Nodes for class definitions currently in scope
         self.context_stack = []  # for detecting which FunctionDefs are methods
-        
+
         # qika: 用于记录之前处理过的代码信息，用于后续处理（赋值或调用）
         # last_value: 之前处理过的代码对应的虚拟节点
         # last_type: 之前处理过的代码对应的虚拟节点的实际类型
         # 如无法确定，则为None
         self.last_value = None
         self.last_type = None
-        
-        
+
         # 记录当前是第几次process_one
         self.pas_time = 0
 
@@ -162,7 +161,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.visit(ast.parse(content, filename))
         self.module_name = None
         self.filename = None
-        
+
     # @func_set_timeout(30)
     def add_process_one(self, filename, content):
         self.filename = filename
@@ -332,7 +331,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         return self
 
     def get_related_nodes(
-        self, node: Union[None, Node] = None, namespace: Union[str, None] = None, max_iter: int = 1000):
+            self, node: Union[None, Node] = None, namespace: Union[str, None] = None, max_iter: int = 1000):
         """
         get nodes that related to `node` or are in `namespace`
 
@@ -400,7 +399,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         module_node = self.get_node(module_ns, module_name, node, flavor=Flavor.MODULE)
         module_node_2 = self.get_node("", self.module_name, node, flavor=Flavor.MODULE)
 
-        # Module的定义节点的类型路径是它自己, 定义路径也是它自己 
+        # Module的定义节点的类型路径是它自己, 定义路径也是它自己
         module_node.set_type(module_node.get_name())
         module_node.set_defined_path(module_node.get_name())
         self.associate_node(module_node, node, filename=self.filename)
@@ -417,15 +416,15 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         if self.add_defines_edge(module_node, None):
             self.logger.info("Def Module %s" % node)
-        
+
         if module_node.get_name() not in self.uses_edges:
             self.uses_edges[module_node.get_name()] = set()
         if module_node.get_name() not in self.virtual_uses_edges:
             self.virtual_uses_edges[module_node.get_name()] = {}
-    
+
     def visit_ClassDef(self, node):
         self.logger.debug("ClassDef %s, %s:%s" % (node.name, self.filename, node.lineno))
-        
+
         if node.name == "CallbackAuthenticationPolicy":
             self.qika_effective_principals = 1
 
@@ -442,7 +441,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.uses_edges[class_node.get_name()] = set()
         if class_node.get_name() not in self.virtual_uses_edges:
             self.virtual_uses_edges[class_node.get_name()] = {}
-        
+
         # The graph Node may have been created earlier by a FromImport,
         # in which case its AST node points to the site of the import.
         #
@@ -470,7 +469,6 @@ class CallGraphVisitor(ast.NodeVisitor):
             # mark uses from a derived class to its bases (via names appearing in a load context).
             self.visit(b)
 
-
         if class_node.get_name() == 'xmnlp.module.Module':
             qika = 1
         for stmt in node.body:
@@ -484,8 +482,6 @@ class CallGraphVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         self.logger.debug("FunctionDef %s, %s:%s" % (node.name, self.filename, node.lineno))
 
-        
-        
         # To begin with:
         #
         # - Analyze decorators. They belong to the surrounding scope,
@@ -509,18 +505,17 @@ class CallGraphVisitor(ast.NodeVisitor):
         func_node.set_value(func_node)
         if self.add_defines_edge(from_node, func_node):
             self.logger.info("Def from %s to Function %s" % (from_node, func_node))
-        
+
         self.uses_edges[func_node.get_name()] = set()
-        
-        
+
         if func_node.get_name() not in self.uses_edges:
             self.uses_edges[func_node.get_name()] = set()
         if func_node.get_name() not in self.virtual_uses_edges:
             self.virtual_uses_edges[func_node.get_name()] = {}
-        
+
         if node.name == "effective_principals" and self.qika_effective_principals:
             self.qika_effective_principals = 2
-        
+
         # Same remarks as for ClassDef above.
         #
         self.associate_node(func_node, node, self.filename)
@@ -532,7 +527,6 @@ class CallGraphVisitor(ast.NodeVisitor):
         inner_ns = self.get_node_of_current_namespace().get_name()
         self.scope_stack.append(self.scopes[inner_ns])
         self.context_stack.append("FunctionDef %s" % (node.name))
-
 
         # Capture which names correspond to function args.
         #
@@ -554,37 +548,35 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         # record bindings of args to the given default values, if present
         self.analyze_arguments(node.args)
-        
+
         # Analyze the function body
-        
+
         self.functional_info[func_node.get_name()] = {"annotation": ''}
         # 如果body中首个stmt是注释，则将其作为功能注释
         if len(node.body) > 0 and isinstance(node.body[0], ast.Expr):
-            
-            if isinstance(node.body[0].value, ast.Constant) and type(node.body[0].value.s)==str:
+
+            if isinstance(node.body[0].value, ast.Constant) and type(node.body[0].value.s) == str:
                 self.functional_info[func_node.get_name()]["annotation"] = node.body[0].value.s
-                self.functional_info[func_node.get_name()]["annotation_begin"] = node.body[0].lineno 
+                self.functional_info[func_node.get_name()]["annotation_begin"] = node.body[0].lineno
                 self.functional_info[func_node.get_name()]["annotation_end"] = node.body[0].end_lineno
             elif isinstance(node.body[0].value, ast.Str):
                 self.functional_info[func_node]["annotation"] = node.body[0].value
-                self.functional_info[func_node.get_name()]["annotation_begin"] = node.body[0].lineno 
+                self.functional_info[func_node.get_name()]["annotation_begin"] = node.body[0].lineno
                 self.functional_info[func_node.get_name()]["annotation_end"] = node.body[0].end_lineno
-             
-        
+
         self.functional_info[func_node.get_name()]["body_begin"] = -1
         self.functional_info[func_node.get_name()]["body_end"] = -1
         begin_num = 1 if self.functional_info[func_node.get_name()]["annotation"] != '' else 0
         if len(node.body) > begin_num:
             self.functional_info[func_node.get_name()]["body_begin"] = node.body[begin_num].lineno
             self.functional_info[func_node.get_name()]["body_end"] = node.body[-1].end_lineno
-    
-    
+
         if func_node.get_name() == 'xmnlp.module.Module.save':
             qika = 1
 
         for stmt in node.body:
             self.visit(stmt)
-            
+
         # qika 将函数返回类型加入scope。
         if node.returns is not None:
             return_node = node.returns.value if isinstance(node.returns, ast.Constant) else node.returns
@@ -598,8 +590,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     candidate_node = self.last_value
                     candidate_type = self.last_type
                     candidate_name = candidate_node.name if isinstance(candidate_node, Node) else None
-                    
-                
+
                 if candidate_type is not None:
                     return_type = candidate_type
                     self.scopes[inner_ns].set_Return(return_type)
@@ -627,7 +618,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.generate_args_nodes(node.args, inner_ns)
             self.analyze_arguments(node.args)
             self.visit(node.body)  # single expr
-    
+
     def visit_Return(self, node):
         """qika 通過對返回值的分析，猜測函數的返回類型"""
         """为保证准确性，关闭猜测"""
@@ -639,8 +630,6 @@ class CallGraphVisitor(ast.NodeVisitor):
         if self.last_type and return_node and return_node.defined:
             self.scopes[inner_ns].set_Return(return_node.get_type())
             pass
-            
-            
 
     def generate_args_nodes(self, ast_args, inner_ns):
         """Capture which names correspond to function args.
@@ -676,20 +665,19 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         Used for analyzing FunctionDefs and Lambdas."""
         # https://greentreesnakes.readthedocs.io/en/latest/nodes.html?highlight=functiondef#arguments
-        
+
         # qika：如果参数有类型注释，则标记为对应类型
         for tgt in ast_args.args:
             if tgt.annotation is not None:
                 self.visit(tgt)
-        
+
         if ast_args.defaults:
             n = len(ast_args.defaults)
             for tgt, val in zip(ast_args.args[-n:], ast_args.defaults):
                 targets = sanitize_exprs(tgt)
                 values = sanitize_exprs(val)
                 self.analyze_binding(targets, values)
-        
-                    
+
         if ast_args.kw_defaults:
             n = len(ast_args.kw_defaults)
             for tgt, val in zip(ast_args.kwonlyargs, ast_args.kw_defaults):
@@ -697,7 +685,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     targets = sanitize_exprs(tgt)
                     values = sanitize_exprs(val)
                     self.analyze_binding(targets, values)
-                    
+
     def visit_Import(self, node):
         self.logger.debug("Import %s, %s:%s" % ([format_alias(x) for x in node.names], self.filename, node.lineno))
 
@@ -706,7 +694,7 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         for import_item in node.names:  # the names are modules
             self.analyze_module_import(import_item, node)
-        
+
         pass
 
     def visit_ImportFrom(self, node):
@@ -747,27 +735,26 @@ class CallGraphVisitor(ast.NodeVisitor):
         else:
             if node.module == "asciimatics.constants":
                 qika = 1
-            cut_module_namespace = self.module_name.rsplit(".", 1)[0]+"." if "." in self.module_name else "" 
+            cut_module_namespace = self.module_name.rsplit(".", 1)[0]+"." if "." in self.module_name else ""
             module_name = node.module.split(".")[0]  # normal from module.submodule import foo
             if module_name in cut_module_namespace:
                 module_index = cut_module_namespace.rfind(module_name)
-                if module_index>0:
+                if module_index > 0:
                     tgt_name = cut_module_namespace[:module_index]+node.module
-                elif module_index==0:
+                elif module_index == 0:
                     tgt_name = node.module
             else:
                 tgt_name = node.module
 
-
         # link each import separately
         for alias in node.names:
-            
+
             # if there is alias, add extra edge between alias and node
             if alias.asname is not None:
                 alias_name = alias.asname
             else:
                 alias_name = alias.name
-            
+
             # 首先定义本空间下的虚拟节点 import_node
             from_node = self.get_node_of_current_namespace()
             current_namespace = from_node.get_name()
@@ -776,18 +763,17 @@ class CallGraphVisitor(ast.NodeVisitor):
             # 假设import一个虚拟类，定义对应的虚拟module节点
             mod_node = self.get_node(tgt_name, alias.name, flavor=Flavor.IMPORTEDITEM)
             mod_node.set_type(mod_node.get_name())
-            
+
             # 将import_node的类型设置为虚拟类路径，并且将其的值设置为虚拟类节点
             import_node.set_type(mod_node.get_name())
             import_node.set_value(mod_node)
-            
-            
+
             # 尝试获取import的真实类对应的节点
             if tgt_name+"."+alias.name in self.module_to_filename:
                 mod_node = self.get_node(tgt_name, alias.name, flavor=Flavor.IMPORTEDITEM)
                 if mod_node.defined:
                     # 将import_node的类型设置为真实类节点路径，并且将其的值设置为真实类节点
-                    self.logger.debug("Set type of %s to %s" % (import_node,mod_node))
+                    self.logger.debug("Set type of %s to %s" % (import_node, mod_node))
                     import_node.set_value(mod_node)
                     import_node.set_type(mod_node.get_type())
 
@@ -795,7 +781,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 mod_node = self.find_scope_def_node(tgt_name, alias.name)
                 if mod_node and mod_node.defined:
                     # 将import_node的类型设置为真实类节点路径，并且将其的值设置为真实类节点
-                    self.logger.debug("Set type of %s to %s" % (import_node,mod_node))
+                    self.logger.debug("Set type of %s to %s" % (import_node, mod_node))
                     import_node.set_value(mod_node)
                     import_node.set_type(mod_node.get_type())
                 else:
@@ -803,27 +789,25 @@ class CallGraphVisitor(ast.NodeVisitor):
                     mod_node = self.find_scope_def_node(candidate_path, alias.name)
                     if mod_node and mod_node.defined:
                         # 将import_node的类型设置为真实类节点路径，并且将其的值设置为真实类节点
-                        self.logger.debug("Set type of %s to %s" % (import_node,mod_node))
+                        self.logger.debug("Set type of %s to %s" % (import_node, mod_node))
                         import_node.set_value(mod_node)
                         import_node.set_type(mod_node.get_type())
 
             if from_node.get_name() not in self.import_uses_edges:
                 self.import_uses_edges[from_node.get_name()] = {}
-            self.import_uses_edges[from_node.get_name()][alias_name] = mod_node if isinstance(mod_node, Node) and mod_node.defined else self.get_node(tgt_name, alias.name, flavor=Flavor.IMPORTEDITEM)
-                    
+            self.import_uses_edges[from_node.get_name()][alias_name] = mod_node if isinstance(
+                mod_node, Node) and mod_node.defined else self.get_node(tgt_name, alias.name, flavor=Flavor.IMPORTEDITEM)
+
             self.logger.debug("Use as ImportFrom from %s to %s" % (from_node, import_node))
             if self.add_uses_edge(from_node, import_node):
-                
+
                 self.logger.info("New edge added for Use from %s to %s" % (from_node, import_node))
-            
-            
+
             self.logger.info("From setting name %s to %s" % (alias_name, import_node.get_value()))
-            self.set_value(alias_name, new_value=import_node.get_value(), defined = False)  # set node to be discoverable in module
-            
-            
+            self.set_value(alias_name, new_value=import_node.get_value(),
+                           defined=False)  # set node to be discoverable in module
+
         pass
-            
-                
 
     def analyze_module_import(self, import_item, ast_node):
         """Analyze a names AST node inside an Import or ImportFrom AST node.
@@ -855,14 +839,14 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.import_uses_edges[from_node.get_name()][alias_name] = mod_node
         if self.add_uses_edge(from_node, mod_node):
             self.logger.info("New edge added for Use import %s in %s" % (mod_node, from_node))
-        
+
         import_node = self.get_node(current_namespace, alias_name, flavor=Flavor.IMPORTEDITEM)
         import_node.set_value(mod_node)
         import_node.set_type(mod_node.get_name())
-        
+
         self.set_value(alias_name, new_value=import_node, defined=False)  # set node to be discoverable in module
         self.logger.info("From setting name %s to %s" % (alias_name, mod_node))
-        
+
         pass
 
     # Edmund Horner's original post has info on what this fixed in Python 2.
@@ -922,14 +906,14 @@ class CallGraphVisitor(ast.NodeVisitor):
                     self.remove_wild(from_node, attr_node, node.attr)
 
         pass
-    
+
     def lookup(self, ns, attr_name):
-            if ns in self.scopes:
-                sc = self.scopes[ns]
-                if attr_name in sc.defs:
-                    return sc.defs[attr_name]
-            return None
-    
+        if ns in self.scopes:
+            sc = self.scopes[ns]
+            if attr_name in sc.defs:
+                return sc.defs[attr_name]
+        return None
+
     # name access (node.ctx determines whether set (ast.Store) or get (ast.Load))
     def visit_arg(self, node):
         self.logger.debug("arg %s, %s:%s" % (node.arg, self.filename, node.lineno))
@@ -953,7 +937,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         arg_node.defined = True
         if arg_type is not None:
             arg_node.set_type(arg_type)
-        
+
         self.set_value(node.arg, new_value=arg_node)
         self.last_value = arg_node
         self.last_type = arg_node.get_type()
@@ -964,19 +948,18 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         if isinstance(node.ctx, ast.Store):
             # when we get here, self.last_value has been set by visit_Assign()
-            self.set_value(node.id, self.last_value, self.last_type, node = node)
-            
+            self.set_value(node.id, self.last_value, self.last_type, node=node)
 
         # A name in a load context is a use of the object the name points to.
         elif isinstance(node.ctx, ast.Load):
             tgt_name = node.id
-            name_node, name_ns = self.get_value(tgt_name) 
-            
+            name_node, name_ns = self.get_value(tgt_name)
+
             if tgt_name == "Everyone" and self.qika_effective_principals == 2:
                 self.qika_effective_principals = 3
-            
+
             from_node = self.get_node_of_current_namespace()
-            
+
             # 特殊处理类型名（如int, str, float等）
             type_names = ['int', 'str', 'float', 'bool', 'object', 'list', 'dict', 'tuple']
             if name_node is None and tgt_name in type_names:
@@ -991,11 +974,9 @@ class CallGraphVisitor(ast.NodeVisitor):
                 name_node.defined = False
 
             current_class = self.get_current_class()
-            
-
 
             # 如name不是当前类self或者namespace中定义的对象，添加对name的use边
-            if from_node and (current_class is None or name_node is not current_class) and name_ns != from_node.get_name() and name_node: 
+            if from_node and (current_class is None or name_node is not current_class) and name_ns != from_node.get_name() and name_node:
                 # 如果name是一个被import的名称，则保留import信息
                 for prefix in self.scope_stack[::-1]:
                     prefix = prefix.path
@@ -1013,14 +994,14 @@ class CallGraphVisitor(ast.NodeVisitor):
                     if self.add_uses_edge(from_node, name_node, true_type=False):
                         self.logger.info(
                             "New edge added for Use from %s to %s (use a variable)" % (from_node, name_node)
-                        ) 
+                        )
                 # 不然，认为name不是在name_ns下定义的，而是引入的一个外部类名称或函数名称，即使用了一个真实类或函数类型，添加true_type=True的use边
                 else:
                     self.logger.debug("Use name from %s to %s (use as a type)" % (from_node, name_node))
                     if self.add_uses_edge(from_node, name_node):
                         self.logger.info(
                             "New edge added for Use from %s to %s (use a type name)" % (from_node, name_node.get_type())
-                        ) 
+                        )
 
             # 如果name是list或dict，则考虑“列表的类型是其中元素的类型”，不赋值
             if name_node is not None and name_node.get_type() in ['list', 'dict', 'tuple']:
@@ -1041,7 +1022,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         # TODO: need to be more careful in sanitizing; currently destroys a bare list
 
         values = sanitize_exprs(node.value)  # values is the same for each set of targets
-        
+
         # qika: 如果是将一个列表整体赋值给一个变量，则将列表中的元素类型作为变量类型
         for targets in node.targets:
             targets = sanitize_exprs(targets)
@@ -1055,7 +1036,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 )
             )
             self.analyze_binding(targets, values)
-        
+
         pass
 
     def visit_AnnAssign(self, node):  # PEP 526, Python 3.6+
@@ -1071,7 +1052,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 % (get_ast_node_name(target[0]), get_ast_node_name(value), self.filename, node.lineno)
             )
             self.analyze_binding(target, value)
-            
+
         else:  # just a type declaration
             self.logger.debug(
                 "AnnAssign %s <no value>, %s:%s" % (get_ast_node_name(target[0]), self.filename, node.lineno)
@@ -1088,12 +1069,12 @@ class CallGraphVisitor(ast.NodeVisitor):
             else:
                 self.visit(tgt_type)
                 var_type = self.last_type
-            
+
             self.logger.debug(
                 "AnnAssign %s type %s"
                 % (get_ast_node_name(target[0]), var_type)
             )
-                
+
             for tgt in target:
                 self.last_type = var_type
                 self.last_value = None
@@ -1135,10 +1116,10 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.visit(stmt)
         for stmt in node.orelse:
             self.visit(stmt)
-    
+
     def visit_Subscript(self, node):
         self.logger.debug("Subscript, %s:%s" % (self.filename, node.lineno))
-        
+
         self.visit(node.slice)
         # 如果列表名为Optional，则将slice的类型作为列表的类型
         if isinstance(node.value, ast.Name) and node.value.id == 'Optional':
@@ -1146,7 +1127,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         else:
             # 默认列表的类型为列表中元素的类型，也将其作为当前subscript的类型
             self.visit(node.value)
-    
+
     def visit_List(self, node):
         # 此为“[1,2,3]”等形式的无名列表，只需visit其中元素
         self.logger.debug("List, %s:%s" % (self.filename, node.lineno))
@@ -1182,10 +1163,10 @@ class CallGraphVisitor(ast.NodeVisitor):
         #   https://stackoverflow.com/questions/48753060/what-are-these-extra-symbols-in-a-comprehensions-symtable
         # For related discussion, see
         #   https://bugs.python.org/issue10544
-        
+
         if self.filename in ["/home/lijia/Context_benchmark/Source_Code_Release/Internet/sumy/sumy/summarizers/reduction.py"]:
             qika = 1
-        
+
         gens = node.generators  # tuple of ast.comprehension
         outermost = gens[0]
         moregens = gens[1:] if len(gens) > 1 else []
@@ -1198,9 +1179,9 @@ class CallGraphVisitor(ast.NodeVisitor):
         with ExecuteInInnerScope(self, label):
             for expr in outermost.ifs:
                 self.visit(expr)
-                
+
             for expr in outermost_targets:
-                    self.visit(expr)  # use self.last_value
+                self.visit(expr)  # use self.last_value
 
             # TODO: there's also an is_async field we might want to use in a future version of Pyan.
             for gen in moregens:
@@ -1215,14 +1196,14 @@ class CallGraphVisitor(ast.NodeVisitor):
                 self.visit(getattr(node, field2))
 
     def visit_Call(self, node):
-        
+
         def lookup(ns, attr_name):
             if ns in self.scopes:
                 sc = self.scopes[ns]
                 if attr_name in sc.defs:
                     return sc.defs[attr_name]
             return None
-        
+
         self.logger.debug("Call %s, %s:%s" % (get_ast_node_name(node.func), self.filename, node.lineno))
 
         # visit args to detect uses
@@ -1230,7 +1211,6 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.visit(arg)
         for kw in node.keywords:
             self.visit(kw.value)
-            
 
         # see if we can predict the result
         try:
@@ -1256,7 +1236,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.last_value = None
             self.last_type = None
             self.visit(node.func)
-            
+
             # If self.last_value matches a known class i.e. the call was of the
             # form MyClass(), add a uses edge to MyClass.__init__().
             #
@@ -1267,7 +1247,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             # the AST nodes; the keys just conveniently happen to be the Nodes
             # of known classes.
             #
-            
+
             # 首先定义当前命名空间下的函数调用虚拟节点 call_node
             from_node = self.get_node_of_current_namespace()
             current_namespace = from_node.get_name()
@@ -1279,10 +1259,10 @@ class CallGraphVisitor(ast.NodeVisitor):
                 call_node = self.get_node(current_namespace, "NUK_CALL", None, flavor=Flavor.NAME)
             if self.last_type is not None:
                 call_node.set_type(self.last_type)
-                
+
             if self.last_value in self.class_base_ast_nodes:
                 class_node = self.last_value
-                
+
                 if class_node:
                     # first try directly in object's ns (this works already in pass 1)
                     ns = class_node.get_name()
@@ -1290,7 +1270,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     # next try ns of each ancestor (this works only in pass 2,
                     # after self.mro has been populated)
                     #
-                    
+
                     if value_node is None and class_node in self.mro:
                         base_node = None
                         for up in self.mro[class_node]:  # the first element is always obj itself
@@ -1308,7 +1288,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     self.logger.info(
                         "New edge added for Use from %s to %s (call creates an instance)" % (from_node, to_node)
                     )
-            
+
             # qika: 增加对Call的返回类型的猜测，使last_value为返回类型
             # qika TODO: 无法用于猜测super(), 因为super()不需声明,因此self.last_value为None
             if call_node.get_type() is not None:
@@ -1318,12 +1298,12 @@ class CallGraphVisitor(ast.NodeVisitor):
                     if sc.Return is not None:
                         self.last_type = sc.Return
                         call_node.set_type(sc.Return)
-            
+
             # qika 對於cast(type, value)的處理,分析type获得返回类型
             if isinstance(call_node, Node) and call_node.name == 'cast':
                 self.visit(node.args[0])
                 call_node.set_type(self.last_type)
-                
+
             # qika 对于get_attr(obj, attr)的处理，分析obj.attr获得返回类型
             if isinstance(node.func, ast.Name) and node.func.id == 'getattr':
                 obj_node = node.args[0]
@@ -1335,7 +1315,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 else:
                     self.visit(attr_node)
                     attr_name = self.last_value.get_name() if isinstance(self.last_value, Node) else None
-                
+
                 self.visit(obj_node)
                 obj_node = self.last_value
                 if isinstance(obj_node, Node) and obj_node.get_type() is not None:
@@ -1349,26 +1329,21 @@ class CallGraphVisitor(ast.NodeVisitor):
                                 if self.add_uses_edge(from_node, attr_node, true_type=False):
                                     self.logger.info(
                                         "New edge added for Use from %s to %s (use as a attribute)" % (from_node, attr_node)
-                                    ) 
+                                    )
                             else:
                                 if self.add_uses_edge(from_node, attr_node):
                                     self.logger.info(
                                         "New edge added for Use from %s to %s (use as a type)" % (from_node, attr_node)
-                                    ) 
-                                    
-                                
-                
-            
+                                    )
+
             # 如果针对函数f()无法获得返回类型
             if call_node.get_type() is None:
                 # 如果函数f()本身对应真实节点Nf，则设置type为(Nf.get_name())()
                 if call_node.get_value() is not None:
                     call_node.set_type(call_node.get_value().get_name())
-            
+
             self.last_type = call_node.get_type()
             self.last_value = call_node
-                
-                
 
     def visit_With(self, node):
         self.logger.debug("With (context manager), %s:%s" % (self.filename, node.lineno))
@@ -1478,7 +1453,7 @@ class CallGraphVisitor(ast.NodeVisitor):
 
     def analyze_binding(self, targets, values):
         """Generic handler for binding forms. Inputs must be sanitize_exprs()d."""
-        
+
         # qika：v2中修改node赋值方式，将target.type标记为value。如果value是真实节点，则将value赋值给node。
 
         # Before we begin analyzing the assignment, clean up any leftover self.last_value.
@@ -1514,12 +1489,12 @@ class CallGraphVisitor(ast.NodeVisitor):
                     self.last_type = captured_types[0] if len(captured_types) else None
                     self.visit(tgt)
                 else:
-                    self.last_value = None 
+                    self.last_value = None
                     self.last_type = None
                     self.visit(tgt)
             self.last_value = None
             self.last_type = None
-        
+
         pass
 
     def resolve_builtins(self, ast_node):
@@ -1538,7 +1513,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         pass 1, or some relevant source file is not in the analyzed set).
 
         Returns the Node the call resolves to, or None if not determined.
-        
+
         qika:这里包含对内置函数返回值的类型判断
         """
         if not isinstance(ast_node, ast.Call):
@@ -1594,7 +1569,7 @@ class CallGraphVisitor(ast.NodeVisitor):
 
             # add implementations for other built-in funcnames here if needed
 
-    def resolve_attribute(self, ast_node)-> (Node):
+    def resolve_attribute(self, ast_node) -> (Node):
         """Resolve an ast.Attribute.
 
         Nested attributes (a.b.c) are automatically handled by recursion.
@@ -1609,7 +1584,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.logger.debug(
             "Resolve %s.%s in context %s" % (get_ast_node_name(ast_node.value), ast_node.attr, type(ast_node.ctx))
         )
-        
+
         # look up attr_name in the given namespace, return Node or None
         def lookup(ns, attr_name):
             if ns in self.scopes:
@@ -1624,11 +1599,9 @@ class CallGraphVisitor(ast.NodeVisitor):
         #    ast.Attribute(attr=c, value=ast.Attribute(attr=b, value=a))
         #
         from_node = self.get_node_of_current_namespace()
-        
+
         obj_name = get_ast_node_name(ast_node.value)
-        
-        
-        
+
         # 新定义另一个虚拟节点，表示当前attr的obj，类型为返回的last_value
         if isinstance(ast_node.value, ast.Attribute):
             obj_node, attr_node = self.resolve_attribute(ast_node.value)
@@ -1637,9 +1610,8 @@ class CallGraphVisitor(ast.NodeVisitor):
             else:
                 obj_node = self.get_node("", obj_name, None, flavor=Flavor.UNKNOWN)
                 obj_node.set_type(obj_name)
-            
 
-        elif isinstance(ast_node.value, (ast.Num, ast.Str)): 
+        elif isinstance(ast_node.value, (ast.Num, ast.Str)):
             t = type(ast_node.value)
             tn = t.__name__
             obj_node = self.get_node("", tn, None, flavor=Flavor.CLASS)
@@ -1658,11 +1630,10 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         # 新定义一个虚拟节点，表示当前的attr
         attr_node = self.get_node(obj_node.get_name(), ast_node.attr, None, flavor=Flavor.ATTRIBUTE)
-        
+
         if attr_node.get_name() == 'ReText.dialogs.EncodingDialog.handleTextChanged.buttonBox':
             qika = 1
-        
-                
+
         # 根据obj_node.type找出对应attr的obj
         obj_ns, obj_name = self.split(obj_node.get_type())
         class_node = self.find_node(obj_ns, obj_name)
@@ -1692,32 +1663,32 @@ class CallGraphVisitor(ast.NodeVisitor):
                     qika = 1
             if class_node:
                 obj_node = class_node
-        
+
         if obj_node is None:
             qika = 1
-        
+
         self.logger.debug("Attr %s from %s" % (ast_node.attr, obj_node.get_type()))
 
-        #如果obj_node是func，并且其中恰好定义了和attr同名的变量，则会错误链接到那个变量，因此如果obj_node是func，则直接断开链接并返回
-        if obj_node and obj_node.flavor in [Flavor.CLASSMETHOD, Flavor.FUNCTION, Flavor.METHOD, Flavor.PROPERTYMETHOD, Flavor.STATICMETHOD]: 
+        # 如果obj_node是func，并且其中恰好定义了和attr同名的变量，则会错误链接到那个变量，因此如果obj_node是func，则直接断开链接并返回
+        if obj_node and obj_node.flavor in [Flavor.CLASSMETHOD, Flavor.FUNCTION, Flavor.METHOD, Flavor.PROPERTYMETHOD, Flavor.STATICMETHOD]:
             attr_node = self.get_node(obj_node.get_name() + "()", ast_node.attr, None, flavor=Flavor.UNKNOWN)
             return obj_node, attr_node
-        
-        #qika 分析出命名空间路径ns，另有attr对应的名称b，将ns.b加入调用关系
+
+        # qika 分析出命名空间路径ns，另有attr对应的名称b，将ns.b加入调用关系
         used_node = self.get_node(obj_node.get_type(), ast_node.attr, None, flavor=Flavor.ATTRIBUTE)
         used_node.set_type(used_node.get_name()) if used_node.get_type() is None else None
-        
+
         from_node = self.get_node_of_current_namespace()
         self.logger.debug("Use from %s to %s (use as a attribute)" % (from_node, used_node))
         if self.add_uses_edge(from_node, used_node, true_type=False):
             self.logger.info(
                 "New edge added for Use from %s to %s (use as a attribute)" % (from_node, used_node)
-            ) 
+            )
         if used_node.get_type() is None:
             attr_node.set_type(used_node.get_name())
         else:
             attr_node.set_type(used_node.get_type())
-        
+
         # 如果attr是一个call并且有返回值，将attr_node的value设为返回值对应节点，type设为返回值类型
         # 这条是因为python中有些类函数A.b()可以直接写成A.b来调用
         inner_ns = attr_node.get_name()
@@ -1729,7 +1700,6 @@ class CallGraphVisitor(ast.NodeVisitor):
                 self.logger.debug("Replace call %s as it return %s" % (attr_node, return_node))
                 attr_node.set_value(return_node)
                 attr_node.set_type(return_node.get_type())
-        
 
         return obj_node, attr_node
 
@@ -1819,8 +1789,8 @@ class CallGraphVisitor(ast.NodeVisitor):
         else:
             self.logger.debug("Get %s in %s: no Node value (or name not in scope)" % (name, self.scope_stack[-1]))
         return None, None
-        
-    def set_value(self, name, new_value=None, new_type=None, defined=True, node = None):
+
+    def set_value(self, name, new_value=None, new_type=None, defined=True, node=None):
         """Set the value of name in the current scope. Value must be a Node."""
 
         # get the innermost scope that has name (should be the current scope unless name is a global)
@@ -1843,16 +1813,16 @@ class CallGraphVisitor(ast.NodeVisitor):
                 old_value = sc.defs[name].get_value()
                 if isinstance(old_value, Node) and old_value.get_type() != new_type:
                     sc.defs[name].set_value(None)
-                    
-                self.logger.debug("Set %s in %s to %s:%s" % (name, sc,sc.defs[name], new_type))
+
+                self.logger.debug("Set %s in %s to %s:%s" % (name, sc, sc.defs[name], new_type))
             else:
                 # TODO: should always be a Node or None
                 self.logger.debug("Set %s in %s false: type is None" % (name, sc))
-                
+
         else:
             self.logger.debug("Set: name %s not in scope" % (name))
 
-    ###########################################################################get_attribute
+    # get_attribute
     # Attribute getter and setter
 
     def get_attribute(self, ast_node):
@@ -1868,9 +1838,9 @@ class CallGraphVisitor(ast.NodeVisitor):
         to its attr.)
 
         May pass through UnresolvedSuperCallError.
-        
+
         qika：尝试判断attribute中调用者和调用值的类型,并将last_value设为actual_path
-        
+
         当对a.b无法获取真实节点时，对应的actual_path设置为(a.actual_path).b，
         """
 
@@ -1881,8 +1851,6 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         obj_node, attr_node = self.resolve_attribute(ast_node)
         return obj_node, attr_node
-
-        
 
     def set_attribute(self, ast_node, new_value, new_type):
         """Assign the Node provided as new_value into the attribute described
@@ -1899,16 +1867,15 @@ class CallGraphVisitor(ast.NodeVisitor):
 
         obj_node, attr_node = self.resolve_attribute(ast_node)
         attr_name = attr_node.name
-        
+
         if obj_node.get_name() == 'xmnlp.pinyin.pinyin.Pinyin':
             qika = 1
-        
 
         if isinstance(obj_node, Node) and obj_node.namespace is not None:
             ns = obj_node.get_name()  # fully qualified namespace **of attr**
             if ns in self.scopes:
                 sc = self.scopes[ns]
-                
+
                 if sc is not None:
                     if (attr_name not in sc.defs or sc.defs[attr_name] is None or sc.defs[attr_name].get_name().find("^^^argument^^^")):
                         sc.defs[attr_name] = self.get_node(ns, attr_name, None, flavor=Flavor.NAME)
@@ -1916,7 +1883,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     if isinstance(new_value, Node) and new_type is not None:
                         attr_node.set_value(new_value)
                         attr_node.set_type(new_type)
-                        
+
                         attr_node.defined = True
                         sc.defs[attr_name].defined = True
 
@@ -1927,11 +1894,11 @@ class CallGraphVisitor(ast.NodeVisitor):
                     if new_type is not None:
                         new_value_ns, new_value_name = self.split(new_type)
                         new_value = self.get_node(new_value_ns, new_value_name, None, flavor=Flavor.UNKNOWN)
-                        
+
                         attr_node.set_type(new_type)
                         attr_node.defined = True
                         sc.defs[attr_name].defined = True
-                        
+
                         sc.defs[attr_name].set_type(new_type)
                         self.logger.info("Set %s in %s to Unknown:%s" % (attr_name, sc, new_type))
                     else:
@@ -1944,7 +1911,7 @@ class CallGraphVisitor(ast.NodeVisitor):
     ###########################################################################
     # Graph creation
 
-    def get_node(self, namespace, name, ast_node=None, flavor=Flavor.UNSPECIFIED, actual_path = None, value = None, defined_path = None):
+    def get_node(self, namespace, name, ast_node=None, flavor=Flavor.UNSPECIFIED, actual_path=None, value=None, defined_path=None):
         """Return the unique node matching the namespace and name.
         Create a new node if one doesn't already exist.
 
@@ -2007,8 +1974,8 @@ class CallGraphVisitor(ast.NodeVisitor):
             self.nodes[name] = [n]
 
         return n
-    
-    def split(self, path: str)->[str]:
+
+    def split(self, path: str) -> [str]:
         """split path a.b.c.d as namespace a.b.c and name d
         """
         if path is None:
@@ -2018,8 +1985,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         if namespace == None:
             namespace = ""
         return namespace, name
-        
-        
+
     def find_node(self, namespace, name):
         """Return the unique node matching the namespace and name.
         Return None if not found.
@@ -2029,7 +1995,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 if n.namespace == namespace:
                     return n
         return None
-    
+
     def find_scope_def_node(self, namespace, name):
         """Return the def value of name in scope namespce
         """
@@ -2038,8 +2004,8 @@ class CallGraphVisitor(ast.NodeVisitor):
             if name in sc.defs and sc.defs[name] and sc.defs[name].defined:
                 return sc.defs[name]
         return None
-    
-    def create_node(self, namespace, name, ast_node=None, flavor=Flavor.UNSPECIFIED, actual_path = None, value = None, defined_path = None):
+
+    def create_node(self, namespace, name, ast_node=None, flavor=Flavor.UNSPECIFIED, actual_path=None, value=None, defined_path=None):
         """
         Need some intermediate nodes to preserve specific call details, use this function instead of get_node() to ensure the creation of a new node. 
         Then can assign the actual node found by get_node() to the current node.
@@ -2107,24 +2073,23 @@ class CallGraphVisitor(ast.NodeVisitor):
         to_node.defined = True
         return True
 
-    
-    def add_uses_edge(self, from_node, to_node, true_type = True):
+    def add_uses_edge(self, from_node, to_node, true_type=True):
         """Add a uses edge in the graph between two nodes."""
         if to_node is None:
             return False
         if from_node is None:
             return False
-        
+
         from_scope = self.scopes[from_node.get_name()] if from_node.get_name() in self.scopes else None
         if from_scope is not None and to_node.name in from_scope.defs and from_scope.defs[to_node.name] is not None:
             if from_scope.defs[to_node.name].get_name() == to_node.get_name():
                 self.logger.debug(
                     "%s is defined by %s, so skip" % (to_node, from_node)
-                    ) 
+                )
                 return False
-    
+
         from_node_name = from_node.get_name()
-        
+
         # true type为True时，表示use了某一个真实类型，可能是内置类型，自定义类或第三方引入类型等；
         # true type为False时，表示use了某一个具体实例，如外部自定义的变量a
         if true_type:
@@ -2132,7 +2097,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             to_node_path = to_node.get_name()
             to_node_type_path = to_node.get_type()
 
-            while(to_node_type_path and to_node_type_path != to_node_path):
+            while (to_node_type_path and to_node_type_path != to_node_path):
                 type_name = to_node_type_path.split(".")[-1]
                 type_namespace = to_node_type_path[0:-len(type_name)-1]
                 type_node = self.find_node(type_namespace, type_name)
@@ -2141,19 +2106,19 @@ class CallGraphVisitor(ast.NodeVisitor):
                 to_node = type_node
                 to_node_path = to_node.get_name()
                 to_node_type_path = to_node.get_type()
-            
+
             if not to_node_type_path:
                 to_node.set_type(to_node_path)
                 to_node_type_path = to_node_path
-            
+
             type_name = to_node_type_path.split(".")[-1]
             type_namespace = to_node_type_path[0:-len(type_name)-1]
-            
+
             add_flag = False
-            
+
             # 当type_namespace存在时，to_node即为真实节点
             if to_node_type_path in self.scopes:
-                pass  
+                pass
             elif (type_namespace in self.scopes and type_name in self.scopes[type_namespace].defs):
                 to_node = self.scopes[type_namespace].defs[type_name]
 
@@ -2167,8 +2132,8 @@ class CallGraphVisitor(ast.NodeVisitor):
                 self.uses_edges[from_node_name].add(to_node)
                 self.logger.debug(
                     "Added Use-Edge from %s to %s" % (from_node, to_node)
-                    ) 
-    
+                )
+
             # 当to_node_type_path和to_node_path不一致时，to_node为虚拟节点
             elif self.pas_time > 0 and not add_flag:
                 # 当已经解析过一遍完整项目之后，进入虚拟uses_edge添加逻辑
@@ -2181,33 +2146,32 @@ class CallGraphVisitor(ast.NodeVisitor):
                 to_name = to_node.name
                 if to_node.namespace in ["list", "dict", "set", "int", "float", "str", "bool", "tuple", "object", "NoneType"]:
                     return False
-                
-                self.virtual_uses_edges[from_node_name][to_node.get_name()]=set()
-                
-                if  to_node.flavor is Flavor.IMPORTEDITEM:
+
+                self.virtual_uses_edges[from_node_name][to_node.get_name()] = set()
+
+                if to_node.flavor is Flavor.IMPORTEDITEM:
                     self.virtual_uses_edges[from_node_name][to_node.get_name()].add(to_node)
-                
+
                 prefix = ""
                 name_list = to_node.namespace.split(".")
                 for name in name_list:
                     prefix += name
-                    prefix_node = self.find_node(prefix.rsplit(".",1)[0] if "." in prefix else "", name)
+                    prefix_node = self.find_node(prefix.rsplit(".", 1)[0] if "." in prefix else "", name)
                     if prefix_node and prefix_node.flavor is Flavor.IMPORTEDITEM:
                         to_node.flavor = Flavor.IMPORTEDITEM
                         self.virtual_uses_edges[from_node_name][to_node.get_name()].add(to_node)
                         break
                     prefix += "."
-                
-                
+
                 if to_name in self.nodes:
                     for n in self.nodes[to_name]:
                         # 添加可能的候选真实节点
                         if n.defined:
                             self.virtual_uses_edges[from_node_name][to_node.get_name()].add(n)
-                            
+
                 self.logger.debug(
                     "Added Virtual-Use-Edge from %s to %s" % (from_node, to_node)
-                    ) 
+                )
             else:
                 return False
         # true type为False时，表示use了某一个具体实例，如外部自定义的变量a
@@ -2228,7 +2192,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 self.uses_edges[from_node_name].add(to_node)
                 self.logger.debug(
                     "Added Use-Edge from %s to %s" % (from_node_name, to_node)
-                    ) 
+                )
             # 当to_node_type_path和to_node_path不一致时，to_node为虚拟节点
             elif self.pas_time > 0:
                 # 当已经解析过一遍完整项目之后，进入虚拟uses_edge添加逻辑
@@ -2242,41 +2206,39 @@ class CallGraphVisitor(ast.NodeVisitor):
 
                 if to_node.namespace in ["list", "dict", "set", "int", "float", "str", "bool", "tuple", "object", "NoneType"]:
                     return False
-                
-                self.virtual_uses_edges[from_node_name][to_node.get_name()]=set()
-                
+
+                self.virtual_uses_edges[from_node_name][to_node.get_name()] = set()
+
                 if to_node.flavor is Flavor.IMPORTEDITEM:
                     self.virtual_uses_edges[from_node_name][to_node.get_name()].add(to_node)
-                
+
                 prefix = ""
                 name_list = to_node.namespace.split(".")
                 for name in name_list:
                     prefix += name
-                    prefix_node = self.find_node(prefix.rsplit(".",1)[0] if "." in prefix else "", name)
+                    prefix_node = self.find_node(prefix.rsplit(".", 1)[0] if "." in prefix else "", name)
                     if prefix_node and prefix_node.flavor is Flavor.IMPORTEDITEM:
                         to_node.flavor = Flavor.IMPORTEDITEM
                         self.virtual_uses_edges[from_node_name][to_node.get_name()].add(to_node)
                         break
                     prefix += "."
-                
+
                 if to_name in self.nodes:
                     for n in self.nodes[to_name]:
                         # 添加可能的候选真实节点
                         if n.defined:
                             self.virtual_uses_edges[from_node_name][to_node.get_name()].add(n)
-                            
+
                 self.logger.debug(
                     "Added Virtual-Use-Edge from %s to %s" % (from_node, to_node)
-                    ) 
+                )
             else:
                 return False
-                
-            
+
         if isinstance(to_node, Node) and to_node.namespace is not None:
             self.remove_wild(from_node, to_node, to_node.name)
 
         return True
-    
 
     def remove_wild(self, from_node, to_node, name):
         """Remove uses edge from from_node to wildcard *.name.

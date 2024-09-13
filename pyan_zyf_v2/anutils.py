@@ -225,16 +225,16 @@ class Scope:
             self.defs = {iden: None for iden in table.get_identifiers()}  # name:assigned_value
             self.Return = None
             self.path = "None"
-    
+
     def set_Return(self, value):
         """qika: set the Return value of the scope"""
         self.Return = value
-    
+
     def reset(self, name, type):
         self.name = name
         self.type = type
         self.defs = {}
-    
+
     def __repr__(self):
         return "<Scope: %s %s>" % (self.type, self.name)
 

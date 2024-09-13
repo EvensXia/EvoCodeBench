@@ -13,9 +13,9 @@ import os
 import dill as pickle
 from loguru import logger
 
-from .pyan_zyf_v2.analyzer import CallGraphVisitor
-from .pyan_zyf_v2.anutils import get_module_name
-from .pyan_zyf_v2.call_analyzer import CallAnalyzer, FolderMaker
+from pyan_zyf_v2.analyzer import CallGraphVisitor
+from pyan_zyf_v2.anutils import get_module_name
+from pyan_zyf_v2.call_analyzer import CallAnalyzer, FolderMaker
 
 logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                     level=logging.INFO,

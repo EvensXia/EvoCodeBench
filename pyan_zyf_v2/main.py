@@ -184,7 +184,6 @@ def main(cli_args=None):
 
     known_args, unknown_args = parser.parse_known_args(cli_args)
 
-
     filenames = []
     for fn in unknown_args:
         for fn2 in glob(fn, recursive=True):
