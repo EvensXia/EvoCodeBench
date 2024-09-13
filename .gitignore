@@ -168,3 +168,4 @@ downloads
 .vscode/
 Source_Code_backup/
 log/
+config.*.yaml

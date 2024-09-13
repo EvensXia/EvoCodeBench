@@ -5,7 +5,7 @@ cd "$(dirname "$0")" || exit
 
 # 定义源目录和备份目录
 rm log/* -fr
-rm model_completion/local_completion/codellama-7b_greedy/test_results.jsonl -f
+# rm logout/*.jsonl -f
 SOURCE_DIR="Source_Code"
 BACKUP_DIR="Source_Code_backup"
 

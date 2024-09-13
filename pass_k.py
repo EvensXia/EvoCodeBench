@@ -24,6 +24,20 @@ def parse_args():
     return parser.parse_args()
 
 
+def parse_config():
+    import types
+    import yaml
+    parser = ArgumentParser()
+    parser.add_argument("-c", "--config", type=str)
+    args = parser.parse_args()
+    config: str = args.config
+    config_file, config_key = config.split("::")
+    with open(config_file, "r") as f:
+        config_all = yaml.safe_load(f)
+    args_config = types.SimpleNamespace(**config_all[config_key])
+    return args_config
+
+
 def adjust_indent(code, new_indent):
     # remove original indentation
     dedented_code = textwrap.dedent(code)
@@ -178,7 +192,8 @@ def load_finished_data(args):
 
 
 def main():
-    args = parse_args()
+    # args = parse_args()
+    args = parse_config()
 
     # load output data to be evaluated (skip finished data)
     finished_data = load_finished_data(args)
