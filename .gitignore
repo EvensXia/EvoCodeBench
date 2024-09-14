@@ -171,3 +171,4 @@ log/
 config.*.yaml
 recall_config.*.yaml
 scripts
+*.Dockerfile
