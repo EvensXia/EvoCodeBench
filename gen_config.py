@@ -2,7 +2,8 @@ import json
 import os
 
 import yaml
-
+from pathlib import Path
+ROOT = Path(__file__).parent
 launch_json = {
     "version": "0.2.0",
     "configurations": []
@@ -27,9 +28,9 @@ for task in ["local_completion", "local_infilling", "baseline"]:
             "output_file": f"model_completion/{TASK}/{dirm}/completion.jsonl",
             "log_file": f"logout/{TASK}_{dirm}_recall.jsonl",
             "k": "1",
-            "source_code_root": "Source_Code",
-            "dependency_data_root": "Dependency_Data",
-            "data_file": "data.jsonl",
+            "source_code_root": f'{str(ROOT/"Source_Code")}',
+            "dependency_data_root": f'{str(ROOT/"Dependency_Data")}',
+            "data_file": f'{str(ROOT/"data.jsonl")}',
             "dependency_tmp_dir": "dependency_data_tmp",
             "write_rst": f"logout/{TASK}_{dirm}_recall.txt"
         }
