@@ -10,6 +10,20 @@ from func_timeout import func_set_timeout
 from loguru import logger
 
 
+def remove_ansi_escape_sequences(text):
+    # 定义 ANSI 转义序列的正则表达式
+    ansi_escape = re.compile(r'''
+        \x1B  # ESC 字符
+        (?:   # 非捕获组
+            [@-Z\\-_]  # 简单的 ESC 序列
+        |
+            \[ [0-?]* [ -/]* [@-~]  # CSI 序列
+        )
+    ''', re.VERBOSE)
+    # 使用 sub 方法替换匹配的序列
+    return ansi_escape.sub('', text)
+
+
 def find_project_name(setup_filepath: str) -> str:
     with open(setup_filepath, "r", encoding="utf-8") as file:
         setup_content = file.read()
@@ -45,6 +59,7 @@ class PythonRepo:
         self.pypi_project_name: str = None
         self.env_var = os.environ.copy()
         self.env_var['PYDEVD_DISABLE_FILE_VALIDATION'] = '1'
+        self.env_var['PWD'] = str(self.repo_path)
 
     def load_environments_cfg(self):
         requirements_txt = self.repo_path / "requirements.txt"
@@ -154,8 +169,7 @@ class PythonRepo:
         log_file = os.path.join(log_dir, f"{test.split("::")[-1]}.log")
 
         with open(log_file, "w") as log_fh:
-
-            process = subprocess.Popen([str(self.relate_exec_path), "-m", "pytest", test],
+            process = subprocess.Popen([str(self.relate_exec_path), "-m", "pytest", "--color=no", test],
                                        cwd=str(self.repo_path),
                                        stdout=log_fh,
                                        stderr=log_fh,

@@ -8,13 +8,11 @@ import traceback
 from abc import abstractmethod
 from parser.add_func_call import process as rprocess
 from types import SimpleNamespace
-from typing import Any, Dict
 
-import aiohttp
 import func_timeout
-import requests
 import yaml
-from flask import Flask, jsonify, request
+from EvoCodeBenchWS import WebSocketClient, WebSocketServer
+from loguru import logger
 from python_repo import PythonRepo
 
 
@@ -57,8 +55,11 @@ class EnvManager:
         src_env_dir = os.path.join(self.source_root, project_name)
         dst_env_dir = os.path.join(self.dest_root, project_name)
         if os.path.exists(dst_env_dir):
+            logger.success(f"EXISTING: {dst_env_dir}")
             return
-        shutil.copy(src_env_dir, dst_env_dir)
+        logger.info(f"COPY: {src_env_dir} => {dst_env_dir}")
+        shutil.copytree(src_env_dir, dst_env_dir)
+        logger.success(f"COPY: {src_env_dir} => {dst_env_dir} FINISHED")
 
 
 class PassKTest(Test, EnvManager):
@@ -176,7 +177,7 @@ class RecallKTest(Test, EnvManager):
     def run_test(self, data: dict):
         project_name = data['completion_path'].split('/')[0]
         self.copy_project(project_name)
-        self.SetUp_evaluation(data)
+        self.SetUp_evaluation(data, data['completion'])
         if self.parse_dependency(data) == True:
             generated_dependency = self.extract_dependency(data)
             self.TearDown_evaluation(data)
@@ -214,177 +215,30 @@ class EvoCodeTestServer(SingletonMixin):
             return {"return": ret, "error": error}
 
 
-class EvoCodeTestClient:
-    def __init__(self, server_mapping: Dict[str, str], pass_k_test_route: str, recall_k_test_route: str):
-        """
-        初始化客户端。
-
-        :param server_mapping: 一个字典，键是 key，值是服务器的地址（URL）。
-        """
-        self.server_mapping = server_mapping
-        self.session = requests.Session()  # 同步会话
-        self.async_session = None  # 异步会话，将在异步方法中初始化
-        self.pass_k_test_route = pass_k_test_route
-        self.recall_k_test_route = recall_k_test_route
-
-    def _get_server_url(self, key: str, route: str) -> str:
-        """
-        根据 key 获取服务器的完整 URL。
-
-        :param key: data_dict 中的 key。
-        :param route: 请求的路由，如 '/pass_k_test'。
-        :return: 完整的服务器 URL。
-        """
-        base_url = self.server_mapping.get(key)
-        if not base_url:
-            raise ValueError(f"No server mapping found for key: {key}")
-        return f"{base_url}{route}"
-
-    def pass_k_test(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        同步方式调用 pass_k_test。
-
-        :param data_dict: 请求数据，必须包含 'key'。
-        :return: 服务器的响应。
-        """
-        key = data_dict.get('key')
-        if not key:
-            raise ValueError("data_dict must contain 'key'")
-        url = self._get_server_url(key, self.pass_k_test_route)
-        response = self.session.post(url, json=data_dict)
-        return response.json()
-
-    def recall_k_test(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        同步方式调用 recall_k_test。
-
-        :param data_dict: 请求数据，必须包含 'key'。
-        :return: 服务器的响应。
-        """
-        key = data_dict.get('key')
-        if not key:
-            raise ValueError("data_dict must contain 'key'")
-        url = self._get_server_url(key, self.recall_k_test_route)
-        response = self.session.post(url, json=data_dict)
-        return response.json()
-
-    async def async_pass_k_test(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        异步方式调用 pass_k_test。
-
-        :param data_dict: 请求数据，必须包含 'key'。
-        :return: 服务器的响应。
-        """
-        if self.async_session is None:
-            self.async_session = aiohttp.ClientSession()
-        key = data_dict.get('key')
-        if not key:
-            raise ValueError("data_dict must contain 'key'")
-        url = self._get_server_url(key, self.pass_k_test_route)
-        async with self.async_session.post(url, json=data_dict) as response:
-            return await response.json()
-
-    async def async_recall_k_test(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        异步方式调用 recall_k_test。
-
-        :param data_dict: 请求数据，必须包含 'key'。
-        :return: 服务器的响应。
-        """
-        if self.async_session is None:
-            self.async_session = aiohttp.ClientSession()
-        key = data_dict.get('key')
-        if not key:
-            raise ValueError("data_dict must contain 'key'")
-        url = self._get_server_url(key, self.recall_k_test_route)
-        async with self.async_session.post(url, json=data_dict) as response:
-            return await response.json()
-
-    async def close_async_session(self):
-        """关闭异步会话。"""
-        if self.async_session:
-            await self.async_session.close()
-            self.async_session = None
-
-
 def server_app():
+    import asyncio
     if not os.path.exists("/opt/evo_server.yaml"):
         return
     with open("/opt/evo_server.yaml", "r") as f:
-        configs = SimpleNamespace(**yaml.safe_load(f))
+        args = SimpleNamespace(**yaml.safe_load(f))
+    logger.info(f"loaded args: {args}")
+    ws_server = WebSocketServer()
+    ec_server = EvoCodeTestServer(pass_k_test_configs=args.pass_k_test_configs,
+                                  recall_k_test_configs=args.recall_k_test_configs)
 
-    app = Flask(__name__)
-    server = EvoCodeTestServer(configs.pass_k_test_configs, configs.recall_k_test_configs)
+    def passk_handle(**kwargs):
+        print(kwargs.keys())
+        return ec_server.pass_k_test(data_dict=kwargs)
 
-    @app.route(configs.pass_k_test_route, methods=['POST'])
-    def pass_k_test_route():
-        data = request.json  # 获取 POST 请求中的 JSON 数据
-        response = server.pass_k_test(data)
-        return jsonify(response)
+    def recallk_handle(**kwargs):
+        print(kwargs.keys())
+        return ec_server.recall_k_test(data_dict=kwargs)
 
-    @app.route(configs.recall_k_test_route, methods=['POST'])
-    def recall_k_test_route():
-        data = request.json  # 获取 POST 请求中的 JSON 数据
-        response = server.recall_k_test(data)
-        return jsonify(response)
+    ws_server.add_serve(passk_handle, **args.passk)
+    ws_server.add_serve(recallk_handle, **args.recallk)
 
-    app.run(host=configs.host, port=configs.port)
-
-
-def client_app(pass_k_test_route: str, recall_k_test_route: str):
-    # 假设有两个服务器地址
-    server_mapping = {
-        'key1': 'http://localhost:5000',
-        'key2': 'http://localhost:5001',
-    }
-
-    client = EvoCodeTestClient(server_mapping, pass_k_test_route, recall_k_test_route)
-
-    # 构造请求数据
-    data1 = ...
-    data2 = ...
-
-    # 同步调用 pass_k_test
-    response1 = client.pass_k_test(data1)
-    print("Response from server 1:", response1)
-
-    # 同步调用 recall_k_test
-    response2 = client.recall_k_test(data2)
-    print("Response from server 2:", response2)
-
-
-def async_client_app(pass_k_test_route: str, recall_k_test_route: str):
-    import asyncio
-
-    async def main():
-        # 假设有两个服务器地址
-        server_mapping = {
-            'key1': 'http://localhost:5000',
-            'key2': 'http://localhost:5001',
-        }
-
-        client = EvoCodeTestClient(server_mapping, pass_k_test_route, recall_k_test_route)
-
-        # 构造请求数据
-        data1 = ...
-        data2 = ...
-
-        # 异步调用 pass_k_test
-        response1 = await client.async_pass_k_test(data1)
-        print("Async response from server 1:", response1)
-
-        # 异步调用 recall_k_test
-        response2 = await client.async_recall_k_test(data2)
-        print("Async response from server 2:", response2)
-
-        # 关闭异步会话
-        await client.close_async_session()
-
-    # 运行异步主函数
-    asyncio.run(main())
+    asyncio.run(ws_server.run())
 
 
 if __name__ == "__main__":
     server_app()
-    # client_app()
-    # async_client_app()
