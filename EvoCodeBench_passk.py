@@ -24,9 +24,8 @@ passk_servers = {}
 recallk_servers = {}  # unused
 for service_name, service_config in compose_config["services"].items():
     repo_name = service_config["environment"]["repo_name"]
-    port_number = service_config["ports"][0].split(":")[0]
-    passk_servers[repo_name] = {"host": "localhost", "port": 8765}
-    recallk_servers[repo_name] = {"host": "localhost", "port": 8766}
+    passk_servers[repo_name] = {"host": "localhost", "port": int(service_config["ports"][0].split(":")[0])}
+    recallk_servers[repo_name] = {"host": "localhost", "port": int(service_config["ports"][1].split(":")[0])}
     logger.success(f"load service {service_name}, repo_name: {repo_name}")
 client = EvoCodeTestClient(passk_servers=passk_servers)
 ####################################################################
