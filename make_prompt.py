@@ -31,7 +31,7 @@ def produce_prompt(args, d, tokenizer):
         context_above_ids = tokenizer.encode(d['contexts_above'])
         if len(context_above_ids) > max_context_length:
             context_above_ids = context_above_ids[-max_context_length:]
-            context_above = tokenizer.decode(context_above_ids)
+        context_above = tokenizer.decode(context_above_ids)
         prompt = template.format(
             function_name=d['function_name'],
             contexts_above=context_above,
@@ -75,6 +75,7 @@ def main():
         for d in prompt_elements:
             prompt = produce_prompt(args, d, tokenizer)
             f.write(json.dumps({'namespace': d['namespace'], 'prompt': prompt}) + '\n')
+
 
 if __name__ == '__main__':
     main()

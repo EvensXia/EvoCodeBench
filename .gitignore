@@ -173,3 +173,5 @@ recall_config.*.yaml
 scripts
 *.Dockerfile
 Source_Code2/
+api_key.txt
+gpt_inference2.py
