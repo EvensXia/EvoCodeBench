@@ -1,7 +1,3 @@
-# 定义基础模型和变体
-base_models=("deepseek-33b" "gpt-4-1106" "gpt-35-1106")
-suffixes=("_greedy" "_greedy_recall" "" "_recall")
-
 # 定义路径数组
 folders=("baseline" "local_completion" "local_infilling")
 modas=("greedy" "sampling")
