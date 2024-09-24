@@ -8,25 +8,27 @@ from subprocess import run
 import func_timeout
 import numpy as np
 import psutil
+import yaml
 from func_timeout import func_set_timeout
+from loguru import logger
 from python_repo import PythonRepo
 from tqdm import tqdm
+
 from EvoCodeBench import EvoCodeTestClient
-from loguru import logger
-import yaml
+
 ####################################################################
 # 从docker-compose文件中获取服务的repo配置
 with open("path/to/docker-compose.yaml", "r") as f:
     compose_config = yaml.safe_load(f)
-server_mapping = {}
+passk_servers = {}
+recallk_servers = {}  # unused
 for service_name, service_config in compose_config["services"].items():
     repo_name = service_config["environment"]["repo_name"]
     port_number = service_config["ports"][0].split(":")[0]
-    server_mapping[repo_name] = f"http://localhost:{port_number}"
-    logger.success(f"load service {service_name}, repo_name:")
-pass_k_test_route = '/pass_k_test'
-recall_k_test_route = '/recall_k_test'
-client = EvoCodeTestClient(server_mapping, pass_k_test_route, recall_k_test_route)
+    passk_servers[repo_name] = {"host": "localhost", "port": 8765}
+    recallk_servers[repo_name] = {"host": "localhost", "port": 8766}
+    logger.success(f"load service {service_name}, repo_name: {repo_name}")
+client = EvoCodeTestClient(passk_servers=passk_servers)
 ####################################################################
 
 
@@ -43,6 +45,7 @@ def parse_args():
 
 def parse_config():
     import types
+
     import yaml
     parser = ArgumentParser()
     parser.add_argument("-c", "--config", type=str)

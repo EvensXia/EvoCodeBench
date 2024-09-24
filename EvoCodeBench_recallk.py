@@ -15,15 +15,15 @@ from EvoCodeBench import EvoCodeTestClient
 # 从docker-compose文件中获取服务的repo配置
 with open("path/to/docker-compose.yaml", "r") as f:
     compose_config = yaml.safe_load(f)
-server_mapping = {}
+passk_servers = {}  # unused
+recallk_servers = {}
 for service_name, service_config in compose_config["services"].items():
     repo_name = service_config["environment"]["repo_name"]
     port_number = service_config["ports"][0].split(":")[0]
-    server_mapping[repo_name] = f"http://localhost:{port_number}"
-    logger.success(f"load service {service_name}, repo_name:")
-pass_k_test_route = '/pass_k_test'
-recall_k_test_route = '/recall_k_test'
-client = EvoCodeTestClient(server_mapping, pass_k_test_route, recall_k_test_route)
+    passk_servers[repo_name] = {"host": "localhost", "port": 8765}
+    recallk_servers[repo_name] = {"host": "localhost", "port": 8766}
+    logger.success(f"load service {service_name}, repo_name: {repo_name}")
+client = EvoCodeTestClient(recallk_servers=recallk_servers)
 ####################################################################
 
 

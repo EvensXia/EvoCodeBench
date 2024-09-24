@@ -8,6 +8,7 @@ import traceback
 from abc import abstractmethod
 from parser.add_func_call import process as rprocess
 from types import SimpleNamespace
+from typing import Callable
 
 import func_timeout
 import yaml
@@ -215,6 +216,69 @@ class EvoCodeTestServer(SingletonMixin):
             return {"return": ret, "error": error}
 
 
+class EvoCodeTestClient:
+    def __init__(self, passk_servers: dict = None, passk_func: Callable[[dict], str] = None,
+                 recallk_servers: dict = None, recallk_func: Callable[[dict], dict[str, list] | None] = None) -> None:
+        self._passk_enabled: bool = False
+        self._recallk_enabled: bool = False
+
+        def passk(data: dict):
+            logger.warning(f"default passk func {passk_func} is in use")
+            error = ""
+            try:
+                ret = passk_func(data)
+            except Exception:
+                ret = "Fail"
+                error = traceback.format_exc()
+            return {"return": ret, "error": error}
+
+        def recallk(data: dict):
+            logger.warning(f"default recallk func {recallk_func} is in use")
+            error = ""
+            try:
+                ret = recallk_func(data)
+            except Exception:
+                ret = None
+                error = traceback.format_exc()
+            return {"return": ret, "error": error}
+
+        if passk_servers is not None:
+            self.passk_client = WebSocketClient()
+            for key, server in passk_servers.items():
+                self.passk_client.add_server(key, **server)
+            self.passk_client.enable = True
+            self._passk_enabled: bool = True
+            self._passk_call: Callable[[dict], dict] = self.passk_client.regist_faas(passk)
+        else:
+            if passk_func is not None:
+                self._passk_enabled: bool = True
+                self._passk_call: Callable[[dict], dict] = passk
+
+        if recallk_servers is not None:
+            self.recallk_client = WebSocketClient()
+            for key, server in recallk_servers.items():
+                self.recallk_client.add_server(key, **server)
+            self.recallk_client.enable = True
+            self._recallk_enabled: bool = True
+            self._recallk_call: Callable[[dict], dict] = self.recallk_client.regist_faas(recallk)
+        else:
+            if recallk_func is not None:
+                self._recallk_enabled: bool = True
+                self._recallk_call: Callable[[dict], dict] = recallk
+
+    def pass_k_test(self, data: dict) -> str:
+        if not self._passk_enabled:
+            logger.error(f"no passk server or local function found")
+        result = self._passk_call(data)["return"]
+        return result
+
+    def recall_k_test(self, data: dict) -> dict[str, list] | None:
+        if not self._recallk_enabled:
+            logger.error(f"no recallk server or local function found")
+        result = self._recallk_call(data)["return"]
+        return result
+
+
 def server_app():
     import asyncio
     if not os.path.exists("/opt/evo_server.yaml"):
@@ -238,6 +302,18 @@ def server_app():
     ws_server.add_serve(recallk_handle, **args.recallk)
 
     asyncio.run(ws_server.run())
+
+
+def client_app():
+    client = EvoCodeTestClient(passk_servers=...,
+                               passk_func=lambda x: x,
+                               recallk_servers=...,
+                               recallk_func=lambda x: x)
+    call_dict = ...
+    # passk
+    result = client.pass_k_test(call_dict)
+    # recallk
+    result = client.recall_k_test(call_dict)
 
 
 if __name__ == "__main__":
