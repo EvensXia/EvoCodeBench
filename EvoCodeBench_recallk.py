@@ -251,7 +251,6 @@ def main():
                 data = benchmark_data[output['namespace']]
                 data['completion'] = output['completion']
                 output['generated_dependency'] = client.recall_k_test(data)
-                TearDown_evaluation(args, data)
             f.write(json.dumps(output) + '\n')
             f.flush()
 
